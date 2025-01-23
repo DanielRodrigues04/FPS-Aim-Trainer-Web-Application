@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Target, Settings, Stats } from './components';
 import { Auth } from './components/Auth';
 import { useAuth } from './contexts/AuthContext';
@@ -20,7 +20,7 @@ function App() {
   const [misses, setMisses] = useState(0);
   const [timeLeft, setTimeLeft] = useState(settings.gameTime);
   const [showSettings, setShowSettings] = useState(false);
-  const [targetPosition, setTargetPosition] = useState({ x: 0, y: 0 });
+  const targetRef = useRef<{ moveTarget: () => void } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -66,27 +66,19 @@ function App() {
     setScore(0);
     setMisses(0);
     setTimeLeft(settings.gameTime);
-    setTargetPosition(getRandomPosition());  // Define a posição inicial do alvo
-  };
-
-  const getRandomPosition = () => {
-    const width = window.innerWidth - settings.targetSize;
-    const height = window.innerHeight - settings.targetSize;
-    const x = Math.random() * width;
-    const y = Math.random() * height;
-    return { x, y };
   };
 
   const handleTargetClick = () => {
     if (gameState === 'playing') {
       setScore(prev => prev + 1);
-      setTargetPosition(getRandomPosition());  // Muda a posição do alvo após ser clicado
     }
   };
 
   const handleMiss = () => {
     if (gameState === 'playing') {
       setMisses(prev => prev + 1);
+      // Move target to new position on miss
+      targetRef.current?.moveTarget();
     }
   };
 
@@ -154,7 +146,8 @@ function App() {
 
         {/* Game Area */}
         <div 
-          className="relative bg-gray-800 rounded-lg overflow-hidden"
+          data-game-area
+          className="relative bg-gray-800 rounded-lg overflow-hidden cursor-crosshair"
           style={{ height: 'calc(100vh - 240px)' }}
           onClick={handleMiss}
         >
@@ -184,10 +177,10 @@ function App() {
 
           {gameState === 'playing' && (
             <Target
+              ref={targetRef}
               size={settings.targetSize}
               speed={settings.targetSpeed}
               onClick={handleTargetClick}
-              position={targetPosition}  // Passa a posição ao componente Target
             />
           )}
         </div>
